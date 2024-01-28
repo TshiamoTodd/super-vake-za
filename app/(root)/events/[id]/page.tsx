@@ -1,19 +1,25 @@
 import CheckoutButton from '@/components/shared/CheckoutButton';
 import Collection from '@/components/shared/Collection';
+import { Button } from '@/components/ui/button';
 import { getEventById, getRelatedEventsByCategory } from '@/lib/actions/event.actions';
 import { formatDateTime } from '@/lib/utils';
 import { SearchParamProps } from '@/types';
+import { auth } from '@clerk/nextjs';
 import Image from 'next/image';
+import Link from 'next/link';
 import React from 'react'
 
 const EventDetails = async ({params : {id}, searchParams}: SearchParamProps) => {
+    const {sessionClaims} = auth();
+    const userId = sessionClaims?.userId as string;
+
     const event = await getEventById(id);
 
     const relatedEvents = await getRelatedEventsByCategory({
         categoryId: event.category._id,
         eventId: event._id,
         page: searchParams.page as string,
-    })
+    });
 
     return (
         <>
@@ -48,9 +54,17 @@ const EventDetails = async ({params : {id}, searchParams}: SearchParamProps) => 
                         </div>
 
                         {/* CHECKOUT BUTTON */}
-                        <CheckoutButton
-                            event={event}
-                        />
+                        {event.organizer._id !== userId ? (
+                            <CheckoutButton
+                                event={event}
+                            />
+                        ) : (
+                            <Button asChild className='button rounded-full' size={'lg'}>
+                                <Link href={`/orders?eventId=${event._id}`}>
+                                    View Orders
+                                </Link>
+                            </Button>
+                        )}
 
                         <div className='flex flex-col gap-5'>
                             <div className='flex gap-2 md:gap-3'>
