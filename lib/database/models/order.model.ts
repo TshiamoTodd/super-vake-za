@@ -12,6 +12,7 @@ export interface IOrder extends Document {
     _id: string
     firstName: string
     lastName: string
+    email: string
   }
 }
 

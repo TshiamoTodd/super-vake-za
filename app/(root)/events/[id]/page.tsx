@@ -2,18 +2,21 @@ import CheckoutButton from '@/components/shared/CheckoutButton';
 import Collection from '@/components/shared/Collection';
 import { Button } from '@/components/ui/button';
 import { getEventById, getRelatedEventsByCategory } from '@/lib/actions/event.actions';
+import { getOrderByEventAndUser } from '@/lib/actions/order.actions';
 import { formatDateTime } from '@/lib/utils';
 import { SearchParamProps } from '@/types';
 import { auth } from '@clerk/nextjs';
 import Image from 'next/image';
 import Link from 'next/link';
-import React from 'react'
 
 const EventDetails = async ({params : {id}, searchParams}: SearchParamProps) => {
+    
     const {sessionClaims} = auth();
     const userId = sessionClaims?.userId as string;
 
     const event = await getEventById(id);
+
+    const orderByEventAndUser = await getOrderByEventAndUser({eventId: event._id, userId});
 
     const relatedEvents = await getRelatedEventsByCategory({
         categoryId: event.category._id,
@@ -47,18 +50,29 @@ const EventDetails = async ({params : {id}, searchParams}: SearchParamProps) => 
                                 <p className='p-medium-18 ml-2 mt-2 sm:mt-0'>
                                     by{' '}
                                     <span className='text-primary-500'>
-                                        {event.organizer.firstName} | {event.organizer.firstName}
+                                        {event.organizer.firstName} | {event.organizer.lastName}
                                     </span>
                                 </p>
                             </div>
                         </div>
+                        
+                        {orderByEventAndUser && event.organizer._id !== userId ? (
+                            <div className='flex flex-col gap-3'>
+                                <p className='p-bold-20 text-grey-600'>
+                                    You have already purchased this event
+                                </p>
+                            </div>
+                        
+                        ): (
+                            null
+                        )}
 
-                        {/* CHECKOUT BUTTON */}
-                        {event.organizer._id !== userId ? (
-                            <CheckoutButton
-                                event={event}
-                            />
-                        ) : (
+                        {event.organizer._id !== userId && !orderByEventAndUser && (
+                            <CheckoutButton event={event} />
+                        )}
+
+                        
+                        {event.organizer._id === userId && (
                             <Button asChild className='button rounded-full' size={'lg'}>
                                 <Link href={`/orders?eventId=${event._id}`}>
                                     View Orders

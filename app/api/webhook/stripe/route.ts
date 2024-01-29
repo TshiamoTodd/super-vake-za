@@ -31,9 +31,10 @@ export async function POST(request: Request) {
       createdAt: new Date(),
     }
 
-    const newOrder = await createOrder(order)
+    const newOrder = await createOrder(order);
+
     return NextResponse.json({ message: 'OK', order: newOrder })
   }
 
-  return new Response('', { status: 200 })
+  return new Response('Order Created & Email sent', { status: 200 })
 }

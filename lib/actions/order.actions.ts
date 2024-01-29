@@ -9,6 +9,7 @@ import Order from '../database/models/order.model';
 import Event from '../database/models/event.model';
 import {ObjectId} from 'mongodb';
 import User from '../database/models/user.model';
+import nodemailer from 'nodemailer';
 
 export const checkoutOrder = async (order: CheckoutOrderParams) => {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -34,8 +35,8 @@ export const checkoutOrder = async (order: CheckoutOrderParams) => {
         buyerId: order.buyerId,
       },
       mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_SERVER_URL}/profile`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SERVER_URL}/`,
+      success_url: `${process.env.NEXT_PUBLIC_SERVER_URL}/events/${order.eventId}?success=1`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SERVER_URL}/events/${order.eventId}?cancel=1`,
     });
 
     redirect(session.url!)
@@ -146,3 +147,54 @@ export async function getOrdersByUser({ userId, limit = 3, page }: GetOrdersByUs
     handleError(error)
   }
 }
+
+// GET ORDER BY EVENT AND USER
+export async function getOrderByEventAndUser({ eventId, userId }: { eventId: string, userId: string }) {
+  try {
+    await connectToDatabase()
+
+    const order = await Order.findOne({ event: eventId, buyer: userId })
+
+    return JSON.parse(JSON.stringify(order))
+  } catch (error) {
+    handleError(error)
+  }
+}
+
+// SEND ORDER MAIL
+export async function sendOrderMail({
+  to, 
+  subject, 
+  body,
+}: {
+  to: string, subject: string, body: string
+}) {
+  const {SMTP_EMAIL, SMTP_PASSWORD} = process.env;
+
+  const transport = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: SMTP_EMAIL,
+        pass: SMTP_PASSWORD,
+    },
+  });
+
+  try {
+        const testResult = await transport.verify();
+        console.log(testResult);
+    } catch (error) {
+        console.log(error);
+    }
+
+  try {
+      const sendResult = await transport.sendMail({
+          from: SMTP_EMAIL,
+          to,
+          subject,
+          html: body
+      });
+  } catch (error) {
+      console.log(error);
+  }
+}
+
