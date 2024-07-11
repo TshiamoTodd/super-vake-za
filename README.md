@@ -665,6 +665,6 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 # Conclusion
-
+This documentation provides a high-level overview of the Events Booking Application, including installation, configuration, folder structure, database schema, API endpoints, server actions, image uploading, and payment integration. For detailed usage and additional features, refer to the source code and in-line comments.
 
 Check out my [blog](#) for more details.
