@@ -3,10 +3,13 @@
 2. Installation
 3. Project Structure
 4. Authentication with clerk
-5. File Upload with React Dropzone
-6. Storing Files in Firebase Firestore
-7. Running the Application
-8. Deployment
+5. Database Schema
+6. API Endpoints
+7. Server Actions
+8. Payment Integration
+9. Running the Application
+10. Deployment
+11. Conclusion
 
 # Introduction
 This Events Booking Application is built using Next.js and utilizes MongoDB with Mongoose as the Object Data Modeling (ODM) library. The application leverages UploadThing for cloud storage to upload event images and uses Stripe for processing ticket payments. Server actions are employed to handle API requests to the database.
@@ -90,6 +93,16 @@ super-vake-za/
 ├── package.json
 └── README.md
 
+```
+
+# Set up Clerk Authentication
+- Sign up for Clerk at [Clerk.com](https://clerk.com/).
+- Create a Clerk application and get your Frontend API.
+- Add your Clerk Frontend API to your .env.local file.
+
+```
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your-clerk-publishable-key
+CLERK_SECRET_KEY=your-clerk-secret-key
 ```
 
 # Database Schema
@@ -545,20 +558,86 @@ For our **event** actions we have 7 functions that perform CRUD operations to th
 
 1. `createEvent()`
    -  Creates a new Event object in the database
-3. `getEventById({id})`
-   - Retrieves event object based on the ID provided
-5. `updateEvent({data})`
+2. `getEventById()`
+  - Retrieves event object based on the ID provided
+3. `updateEvent()`
    - Updates an event based on the ID and event data provided
-7. `deleteEvent({id})`
+4. `deleteEvent()`
    - Deletes an event based on the ID provided
-9. `getAllEvents()`
+5. `getAllEvents()`
     - Retrieves a list of event objects in the database limited to only 6 objects per query
-11. `getEventsByUser({userId})`
+6. `getEventsByUser()`
     - Retrieves a list of event objects in the database that matches the userId of the user provided
-13. `getRelatedEventsByCategory()`
+7. `getRelatedEventsByCategory()`
     - Retrieves a list of event objects in the database that are related based on category
 
-First, run the development server:
+### 3. Order Actions
+For the **order** actions we have 5 functions that perform CRUD operations to the database using our Order object the functions are as follows:
+`lib/actions/order.actions.ts`
+
+1. `createOrder()`
+   - Creates a new Order object in the database
+2. `checkoutOrder()`
+  - Creates a stripe checkout session with the order data
+3. `getOrdersByEvent()`
+   - Retrieves orders from the database that are linked to an event
+4. `getOrdersByUser()`
+   - Retrieves orders from the database that are linked to a user
+5. `getOrderByEventAndUser()`
+    - Retrieves orders from the database that are linked to a user and an event
+
+### 4. Category Actions
+For the **category** actions we have 2 functions that perform CRUD operations to the database using our Category object the functions are as follows:
+`lib/actions/category.actions.ts`
+
+1. `createCategory()`
+   - Creates a new Category object in the database
+2. `getAllCategories()`
+  - Retrives a list of all category objects from the database
+
+# Payment Integration
+This function create a Stripe checkout session intent that triggers a session webhook to process the transaction
+`lib/action/order.actions.ts`
+
+```typescript
+export const checkoutOrder = async (order: CheckoutOrderParams) => {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+  const price = order.isFree ? 0 : Number(order.price) * 100;
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            unit_amount: price,
+            product_data: {
+              name: order.eventTitle
+            }
+          },
+          quantity: 1
+        },
+      ],
+      metadata: {
+        eventId: order.eventId,
+        buyerId: order.buyerId,
+      },
+      mode: 'payment',
+      success_url: `${process.env.NEXT_PUBLIC_SERVER_URL}/events/${order.eventId}?success=1`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SERVER_URL}/events/${order.eventId}?cancel=1`,
+    });
+
+    redirect(session.url!)
+  } catch (error) {
+    throw error;
+  }
+}
+```
+
+
+
+# Running the Application
 
 ```bash
 npm run dev
@@ -571,10 +650,6 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
 
 ## Learn More
 
@@ -589,4 +664,7 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+# Conclusion
+
+
+Check out my [blog](#) for more details.
